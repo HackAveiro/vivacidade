@@ -36,7 +36,7 @@ role_e role = role_listener;
 
 #ifdef YUN
 YunClient yun;
-PubSubClient client("shineupon.me", 1883, callback, yun);
+PubSubClient client("broker.mqtt-dashboard.com", 1883, callback, yun);
 #endif
 
 // How many leds in your strip?
@@ -77,7 +77,7 @@ void setup() {
  radio.enableDynamicPayloads();
  // optionally, increase the delay between retries & # of retries
  radio.setRetries(15, 15);
- radio.setAutoAck(false);
+ radio.setAutoAck(true);
  radio.setDataRate(RF24_250KBPS);
  //radio.setChannel(1);
  radio.setPALevel(RF24_PA_MAX);
