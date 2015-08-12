@@ -1,4 +1,4 @@
-#define YUN
+//#define YUN
 
 #ifdef YUN
 #include <Bridge.h>
@@ -15,10 +15,10 @@ const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
 
 // Set up nRF24L01 radio on SPI bus plus pins 3 & 4
 
-#ifdef YUN 
+#ifdef YUN
 RF24 radio(3, 4);
 #else
-RF24 radio(9, 10);
+RF24 radio(46, 48); //CE(46); CS(48)
 #endif
 
 // NeoPixel Communication
@@ -40,10 +40,11 @@ PubSubClient client("broker.mqtt-dashboard.com", 1883, callback, yun);
 #endif
 
 // How many leds in your strip?
-#define NUM_LEDS 9
+#define NUM_LEDS 10
 #define DATA_PIN 2
 // Define the array of leds
 CRGB leds[NUM_LEDS];
+//CHSV leds[NUM_LEDS];
 
 // Callback function
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -87,7 +88,7 @@ void setup() {
 
  radio.startListening();
  radio.printDetails();
- 
+
  #ifdef YUN
  Serial.println("YUN Version");
  Bridge.begin();
@@ -106,6 +107,19 @@ FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 #endif
 }
 
+//ALWAYS FREE THE STRING!!!!
+byte *rgb2bin(char *in) {
+    byte *out = (byte *) malloc(strlen(in)/2);
+    int p = 0;
+    for(int i=0; i<strlen(in)/2; i++) {
+        char color[2] = {in[p], in[p+1]};
+        out[i] = (byte) strtol(color, NULL, 16);
+        printf("%d\n", (int) out[i]);
+        p+=2;
+    }
+    return out;
+}
+
 void loop() {
 #ifdef YUN
     client.loop();
@@ -118,18 +132,19 @@ void loop() {
  }
 
 #else
-	static uint8_t hue = 0;
-    FastLED.showColor(CHSV(hue, 255, 255));
+//FM:	static uint8_t hue = 0;
+//FM:    FastLED.showColor(CHSV(hue, 255, 255));
 #endif
 
 
  	if (role == role_listener)
 	{
-		if ( radio.available() )
+		if (radio.available() )
 		{
+      int NT = -1;
 			// Dump the payloads until we've gotten everything
 			bool done = false;
-			while (!done) 
+			while (!done)
 			{
 				size_t len = radio.getDynamicPayloadSize();
 				packet[len] = 0;
@@ -140,10 +155,12 @@ void loop() {
 				char *payload = (packet+1);
 	    		printf("Control Byte [ ");
 	    		for( int i = 0; i < 8; i++) {
-				    if (cb & 0x80)
+				    if (cb & 0x80) {
+				        NT+=1;
 				        printf("1");
-				    else
+				    } else{
 				        printf("0");
+				    }
 				    cb <<= 1;
 				}
 
@@ -152,13 +169,30 @@ void loop() {
 				// Spew it
 				printf("Got payload: %s\n\r",payload);
 #ifndef YUN
-				hue = (payload[0]-'0')*100+(payload[1]-'0')*10+(payload[2]-'0');
-				printf("Hue: %i\n", hue);
+				//FM:
+				//hue = (payload[0]-'0')*100+(payload[1]-'0')*10+(payload[2]-'0');
+        //FM: Convert payload in ASCII to bin.
+        for(int i=0; i<(5); i++){
+          leds[i+NT*5] = CRGB(
+            (payload[i*(6)]-'0')*16+(payload[i*(6)+1]-'0'),
+            (payload[i*(6)+2]-'0')*16+(payload[i*(6)+3]-'0'),
+            (payload[i*(6)+4]-'0')*16+(payload[i*(6)+5]-'0')
+            );
+          Serial.println(leds[i+NT*5][0], HEX);
+        }
+
+        //FM: printf("Hue: %i\n", hue);
+
+        //FM: Update led matrix, Binary; 3bytes(HSV) x 10 pixels/line
+        FastLED.show();                     //Send bit stream to NEOPIXELS stripe
+
+
 #endif
 				// Delay just a little bit to let the other unit
 				// make the transition to receiver
 				delay(20);
 			}
+
 		}
 	}
 	if ( role == role_sender && (readSerial.length() != 0) )
