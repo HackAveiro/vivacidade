@@ -1,4 +1,4 @@
-//#define YUN
+#define YUN
 
 #ifdef YUN
 #include <Bridge.h>
@@ -59,8 +59,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 }
 
-
-// Callback function header
 void setup() {
 
  Serial.begin(115200);
@@ -108,28 +106,31 @@ FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 }
 
 //ALWAYS FREE THE STRING!!!!
-byte *rgb2bin(char *in) {
-    byte *out = (byte *) malloc(strlen(in)/2);
+unsigned char *rgb2bin(String in) {
+    unsigned char *out = (unsigned char *) malloc(in.length()/2);
     int p = 0;
-    for(int i=0; i<strlen(in)/2; i++) {
+    printf("OUT: ");
+    for(int i=0; i<in.length()/2; i++) {
         char color[2] = {in[p], in[p+1]};
-        out[i] = (byte) strtol(color, NULL, 16);
-        printf("%d\n", (int) out[i]);
+        out[i] = (unsigned char) (strtol(color, NULL, 16));
+        printf("%X ", (unsigned) out[i]);
         p+=2;
     }
+    printf("\n");
     return out;
 }
 
 void loop() {
 #ifdef YUN
-    client.loop();
+  client.loop();
 
 
- if(!client.connected()) {
-  client.connect("hackAveiroMQTT");
-  Serial.println("Reconnected");
-  client.subscribe("/hackaveiro/bitmap");
- }
+  if(!client.connected()) {
+    delay(2000);
+    client.connect("hackAveiroMQTT");
+    Serial.println("Reconnected");
+    client.subscribe("/hackaveiro/bitmap");
+   }
 
 #else
 //FM:	static uint8_t hue = 0;
@@ -199,7 +200,8 @@ void loop() {
 	{
 
 		// Fill packet with readSerial
-		unsigned int strSize = readSerial.length();
+    unsigned char *tmp = rgb2bin(readSerial);
+		int strSize = readSerial.length()/2;
 		char *control_byte = packet;
 		char *payload = packet;
 		++payload;
@@ -207,18 +209,17 @@ void loop() {
 		// Initialize Control Byte
 		*control_byte = 0x00;
 
-		while(strSize != 0){
-			strSize = readSerial.length();
-			printf("String Length = %i \n\r", strSize);
-
-			readSerial.substring(0, BUFFER_SIZE-2).toCharArray(payload, BUFFER_SIZE-1);
-			readSerial.remove(0, BUFFER_SIZE-2);
-
-			strSize = readSerial.length();
-			printf("New String Length = %i \r\n", strSize);
-
+		while(strSize > 0){
+      unsigned packet_nr = (*control_byte & 0x7F);
+      printf("Packet nr. %d\n", packet_nr);
+      
+      memcpy(payload, tmp+packet_nr, BUFFER_SIZE-1);
+      printf("strSize = %d\r\n", strSize);
+      strSize-=(BUFFER_SIZE-1);  
+      printf("strSize = %d\r\n", strSize);
+        
 			// More Packets Flag
-			if( strSize != 0){
+			if( strSize > 0){
 				// There are more packets to send
 				(*control_byte) = (*control_byte) | 0x80;
 			}else{
@@ -228,11 +229,11 @@ void loop() {
 
 			// Update Packet Number
 			(*control_byte) = (*control_byte) + 0x01;
-
+      
 			// First, stop listening so we can talk.
-	    	radio.stopListening();
-	    	bool ok = radio.write( &packet, strlen(packet) );
-	    	if (ok){
+	    radio.stopListening();
+	    bool ok = radio.write(&packet, BUFFER_SIZE-1 );
+	    if (ok){
 	    		char cb = *control_byte;
 	    		printf("Control Byte [ ");
 	    		for( int i = 0; i < 8; i++) {
@@ -244,16 +245,20 @@ void loop() {
 				    cb <<= 1;
 				}
 				printf(" ] ");
-				printf("Sent: '%s'\n\r", (byte*)packet+1);
-			}
-			else
+        for(int i=1; i<BUFFER_SIZE-1; i++) {
+          printf("%02X", (unsigned char) packet[i]);
+          if(i%3==0)
+            printf(" ");
+        }
+        printf("\n");
+			} else {
 				printf("failed.\n\r");
-
+			}
 			// Now, continue listening
 	    	radio.startListening();
 	    }
-	    // readSerial = "";
-
+	    readSerial = "";
+      free(tmp);
  	}
  	if ( Serial.available() )
  	{
