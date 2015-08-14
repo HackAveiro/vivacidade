@@ -1,4 +1,4 @@
-#define YUN
+//#define YUN
 
 #ifdef YUN
 #include <Bridge.h>
@@ -23,7 +23,7 @@ RF24 radio(46, 48); //CE(46); CS(48)
 
 // NeoPixel Communication
 #define BUFFER_SIZE 32
-char packet[BUFFER_SIZE] = {0};
+unsigned char packet[BUFFER_SIZE] = {0};
 
 String readSerial = "";
 
@@ -54,7 +54,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
  role = role_sender;
 
  for(int i=0; i<length; i++)
-  readSerial+=(char) payload[i];
+  readSerial+=(unsigned  char) payload[i];
  Serial.println(readSerial);
 
 }
@@ -152,8 +152,8 @@ void loop() {
 				// Fetch the payload, and see if this was the last one.
 				done = radio.read( &packet, len );
 
-				char cb = packet[0];
-				char *payload = (packet+1);
+				unsigned char cb = packet[0];
+				unsigned char *payload = (packet+1);
 	    		printf("Control Byte [ ");
 	    		for( int i = 0; i < 8; i++) {
 				    if (cb & 0x80) {
@@ -168,18 +168,33 @@ void loop() {
 				printf(" ] ");
 
 				// Spew it
-				printf("Got payload: %s\n\r",payload);
+        //O Codigo martelado que estava a funcuinar!
+				//printf("Got payload: %s\n\r",payload);
+        printf("Got payload(hex): ");
+        for(int i=0; i<BUFFER_SIZE; i++){
+          printf("%i-%X ", i, payload[i]);  
+        }
+        printf("\n\r");
 #ifndef YUN
 				//FM:
 				//hue = (payload[0]-'0')*100+(payload[1]-'0')*10+(payload[2]-'0');
         //FM: Convert payload in ASCII to bin.
-        for(int i=0; i<(5); i++){
+        /*O Codigo martelado que estava a funcuinar!
+         * for(int i=0; i<(5); i++){
           leds[i+NT*5] = CRGB(
             (payload[i*(6)]-'0')*16+(payload[i*(6)+1]-'0'),
             (payload[i*(6)+2]-'0')*16+(payload[i*(6)+3]-'0'),
             (payload[i*(6)+4]-'0')*16+(payload[i*(6)+5]-'0')
             );
           Serial.println(leds[i+NT*5][0], HEX);
+          */
+          //Payload in binary: CB(1B);R1G1B1(3B);R2G2B2(3B); ... ; R100G100B100(3B). Total = ...
+            for(int i=0; i<(5); i++){
+            leds[i+NT*5] = CRGB(
+              (unsigned char)payload[i*3],
+              (unsigned char)payload[i*3+1],
+              (unsigned char)payload[i*3+2]
+            );
         }
 
         //FM: printf("Hue: %i\n", hue);
@@ -202,8 +217,8 @@ void loop() {
 		// Fill packet with readSerial
     unsigned char *tmp = rgb2bin(readSerial);
 		int strSize = readSerial.length()/2;
-		char *control_byte = packet;
-		char *payload = packet;
+		unsigned char *control_byte = packet;
+		unsigned char *payload = packet;
 		++payload;
 
 		// Initialize Control Byte
@@ -263,7 +278,7 @@ void loop() {
  	if ( Serial.available() )
  	{
  		role = role_listener;
- 		char c = Serial.read();
+ 		unsigned char c = Serial.read();
 
  		if( c == '\r'){
 			Serial.println();
