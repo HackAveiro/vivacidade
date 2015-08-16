@@ -1,31 +1,33 @@
-//#define YUN
+#define GATEWAY
 
-#ifdef YUN
+#ifdef GATEWAY
 #include <Bridge.h>
 #include <YunClient.h>
 #include <PubSubClient.h>
 #endif
 
 #include <SPI.h>
+#include <RF24.h>
 #include "printf.h"
-#include "RF24.h"
 #include "FastLED.h"
 
 const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
 
 // Set up nRF24L01 radio on SPI bus plus pins 3 & 4
-
-#ifdef YUN
+#ifdef GATEWAY
 RF24 radio(3, 4);
 #else
-RF24 radio(46, 48); //CE(46); CS(48)
+RF24 radio(46, 48);
 #endif
 
 // NeoPixel Communication
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 32      //its actually RF24 Max Packet Size
 unsigned char packet[BUFFER_SIZE] = {0};
 
-String readSerial = "";
+#define MQTT_CLIENT_ID  "HackAveiro.org"
+#define MQTT_SERVER     "broker.mqtt-dashboard.com"
+#define MQTT_TOPIC      "/hackaveiro/bitmap"
+String mqttString = "";
 
 // Role
 // The various roles supported by this sketch
@@ -34,9 +36,9 @@ const char* role_friendly_name[] = { "invalid", "Listener", "Sender"};
 
 role_e role = role_listener;
 
-#ifdef YUN
+#ifdef GATEWAY
 YunClient yun;
-PubSubClient client("broker.mqtt-dashboard.com", 1883, callback, yun);
+PubSubClient client(MQTT_SERVER, 1883, callback, yun);
 #endif
 
 // How many leds in your strip?
@@ -44,273 +46,159 @@ PubSubClient client("broker.mqtt-dashboard.com", 1883, callback, yun);
 #define DATA_PIN 2
 // Define the array of leds
 CRGB leds[NUM_LEDS];
-//CHSV leds[NUM_LEDS];
 
-// Callback function
+// MQTT Callback function
 void callback(char* topic, byte* payload, unsigned int length) {
- Serial.print("MQTT Bitmap:");
- Serial.print(length);
- Serial.print(":");
- role = role_sender;
+    printf("MQTT bitmat(%d)", length);
+    for(int i=0; i<length; i++)
+        mqttString+=(unsigned  char) payload[i];
+    Serial.println(mqttString);
 
- for(int i=0; i<length; i++)
-  readSerial+=(unsigned  char) payload[i];
- Serial.println(readSerial);
+    role = role_sender;
+}
 
+// Debug Function
+void print_packet_bitmap(unsigned char *packet, size_t size) {
+    unsigned char cb = packet[0];
+    printf("Control Byte [ ");
+    for( int i = 0; i < 8; i++) {
+        if (cb & 0x80)
+            printf("1");
+        else
+            printf("0");
+
+        cb <<= 1;
+    }
+    printf(" ] Line:%d - ", (unsigned int) (packet[0] & 0x7F));
+    for(int i=1; i<size; i++) {
+        printf("%02X", (unsigned char) packet[i]);
+        if( (i-1)%3 == 0)
+            printf(" ");
+    }
+    printf("\n");
 }
 
 void setup() {
 
- Serial.begin(115200);
-#ifdef YUN
- if  (!Serial) {
-  delay(5000);
- }
-#endif
-
- printf_begin();
- Serial.println("Setup BEGIN");
-
- radio.begin();
- // enable dynamic payloads
- radio.enableDynamicPayloads();
- // optionally, increase the delay between retries & # of retries
- radio.setRetries(15, 15);
- radio.setAutoAck(true);
- radio.setDataRate(RF24_250KBPS);
- //radio.setChannel(1);
- radio.setPALevel(RF24_PA_MAX);
-
- radio.openWritingPipe(pipes[0]);
- radio.openReadingPipe(1, pipes[1]);
-
- radio.startListening();
- radio.printDetails();
-
- #ifdef YUN
- Serial.println("YUN Version");
- Bridge.begin();
-
- if(client.connect("hackAveiroMQTT")) {
-  Serial.println("connected");
-  client.subscribe("/hackaveiro/bitmap");
- }
- #endif
-
- Serial.println("Setup DONE");
-
- printf("*** CHANGING ROLE -- PRESS 'S' TO SWITCH TO: SENDER\n\r");
-#ifndef YUN
-FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-#endif
-}
-
-//ALWAYS FREE THE STRING!!!!
-unsigned char *rgb2bin(String in) {
-    unsigned char *out = (unsigned char *) malloc(in.length()/2);
-    int p = 0;
-    printf("OUT: ");
-    for(int i=0; i<in.length()/2; i++) {
-        char color[2] = {in[p], in[p+1]};
-        out[i] = (unsigned char) (strtol(color, NULL, 16));
-        printf("%X ", (unsigned) out[i]);
-        p+=2;
+    Serial.begin(115200);
+#ifdef GATEWAY //This is actually because we have a YUN
+    if  (!Serial) {
+        delay(5000);
     }
-    printf("\n");
-    return out;
+#endif
+
+    printf_begin();
+    Serial.println("Setup BEGIN");
+
+    /* SETUP RADIO */
+    radio.begin();
+    // enable dynamic payloads
+    radio.enableDynamicPayloads();
+    // optionally, increase the delay between retries & # of retries
+    radio.setRetries(15, 15);
+    radio.setAutoAck(true);
+    radio.setDataRate(RF24_250KBPS);
+    //radio.setChannel(1);
+    radio.setPALevel(RF24_PA_MAX);
+
+    radio.openWritingPipe(pipes[0]);
+    radio.openReadingPipe(1, pipes[1]);
+
+    radio.startListening();
+    radio.printDetails();
+    /* DONE RADIO SETUP */
+
+#ifdef GATEWAY
+    Serial.println("GATEWAY Version");
+    Bridge.begin();
+
+    if(client.connect(MQTT_CLIENT_ID)) {
+        Serial.println("connected");
+        client.subscribe(MQTT_TOPIC);
+    }
+#else
+    Serial.println("DISPLAY Version");
+    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+#endif
+
+    Serial.println("Setup DONE");
 }
 
 void loop() {
-#ifdef YUN
-  client.loop();
+#ifdef GATEWAY
+    client.loop();
 
-
-  if(!client.connected()) {
-    delay(2000);
-    client.connect("hackAveiroMQTT");
-    Serial.println("Reconnected");
-    client.subscribe("/hackaveiro/bitmap");
-   }
-
-#else
-//FM:	static uint8_t hue = 0;
-//FM:    FastLED.showColor(CHSV(hue, 255, 255));
+    if(!client.connected()) {
+        delay(2000);
+        client.connect(MQTT_CLIENT_ID);
+        Serial.println("Reconnected");
+        client.subscribe(MQTT_TOPIC);
+    }
 #endif
 
+    if (role == role_listener) {
+        if (radio.available() ) {
+            size_t len = radio.getDynamicPayloadSize();
+            if(radio.read( &packet, len ) == false)
+                return; //Can't read packet? Abort!
 
- 	if (role == role_listener)
-	{
-		if (radio.available() )
-		{
-      int NT = -1;
-			// Dump the payloads until we've gotten everything
-			bool done = false;
-			while (!done)
-			{
-				size_t len = radio.getDynamicPayloadSize();
-				packet[len] = 0;
-				// Fetch the payload, and see if this was the last one.
-				done = radio.read( &packet, len );
+            print_packet_bitmap(packet, BUFFER_SIZE);
+            if(packet[0] & 0x80 == 0x80) {      //first bit indicates that the packet contains a bitmap
+                int line = packet[0] & 0x7F;    //line number
 
-				unsigned char cb = packet[0];
-				unsigned char *payload = (packet+1);
-	    		printf("Control Byte [ ");
-	    		for( int i = 0; i < 8; i++) {
-				    if (cb & 0x80) {
-				        NT+=1;
-				        printf("1");
-				    } else{
-				        printf("0");
-				    }
-				    cb <<= 1;
-				}
-
-				printf(" ] ");
-
-				// Spew it
-        //O Codigo martelado que estava a funcuinar!
-				//printf("Got payload: %s\n\r",payload);
-        printf("Got payload(hex): ");
-        for(int i=0; i<BUFFER_SIZE; i++){
-          printf("%i-%X ", i, payload[i]);  
-        }
-        printf("\n\r");
-#ifndef YUN
-				//FM:
-				//hue = (payload[0]-'0')*100+(payload[1]-'0')*10+(payload[2]-'0');
-        //FM: Convert payload in ASCII to bin.
-        /*O Codigo martelado que estava a funcuinar!
-         * for(int i=0; i<(5); i++){
-          leds[i+NT*5] = CRGB(
-            (payload[i*(6)]-'0')*16+(payload[i*(6)+1]-'0'),
-            (payload[i*(6)+2]-'0')*16+(payload[i*(6)+3]-'0'),
-            (payload[i*(6)+4]-'0')*16+(payload[i*(6)+5]-'0')
-            );
-          Serial.println(leds[i+NT*5][0], HEX);
-          */
-          //Payload in binary: CB(1B);R1G1B1(3B);R2G2B2(3B); ... ; R100G100B100(3B). Total = ...
-            for(int i=0; i<(5); i++){
-            leds[i+NT*5] = CRGB(
-              (unsigned char)payload[i*3],
-              (unsigned char)payload[i*3+1],
-              (unsigned char)payload[i*3+2]
-            );
-        }
-
-        //FM: printf("Hue: %i\n", hue);
-
-        //FM: Update led matrix, Binary; 3bytes(HSV) x 10 pixels/line
-        FastLED.show();                     //Send bit stream to NEOPIXELS stripe
-
-
+                //Payload in binary: CB(1B);R1G1B1(3B);R2G2B2(3B); ... ; R10G10B10(3B). Total = ...
+                unsigned pixel = 0;
+                for(int i=1; i<len; i+=3){    //we start in byte 1 (payload)
+                    leds[line*NUM_LEDS+pixel] = CRGB(
+                            (unsigned char)packet[i],
+                            (unsigned char)packet[i+1],
+                            (unsigned char)packet[i+2]
+                            );
+                    pixel++;
+                }
+#ifndef GATEWAY
+                //TODO A verdade é que o array leds não pode ser enviado directamente devido a maneira que construimos o painel...
+                //TODO vivacidadeLeds = convert(leds);
+                FastLED.show();                     //Send bit stream to NEOPIXELS stripe
 #endif
-				// Delay just a little bit to let the other unit
-				// make the transition to receiver
-				delay(20);
-			}
-
-		}
-	}
-	if ( role == role_sender && (readSerial.length() != 0) )
-	{
-
-		// Fill packet with readSerial
-    unsigned char *tmp = rgb2bin(readSerial);
-		int strSize = readSerial.length()/2;
-		unsigned char *control_byte = packet;
-		unsigned char *payload = packet;
-		++payload;
-
-		// Initialize Control Byte
-		*control_byte = 0x00;
-
-		while(strSize > 0){
-      unsigned packet_nr = (*control_byte & 0x7F);
-      printf("Packet nr. %d\n", packet_nr);
-      
-      memcpy(payload, tmp+packet_nr, BUFFER_SIZE-1);
-      printf("strSize = %d\r\n", strSize);
-      strSize-=(BUFFER_SIZE-1);  
-      printf("strSize = %d\r\n", strSize);
-        
-			// More Packets Flag
-			if( strSize > 0){
-				// There are more packets to send
-				(*control_byte) = (*control_byte) | 0x80;
-			}else{
-				// This is the last packet in this batch
-				(*control_byte) = (*control_byte) & 0x7F;
-			}
-
-			// Update Packet Number
-			(*control_byte) = (*control_byte) + 0x01;
-      
-			// First, stop listening so we can talk.
-	    radio.stopListening();
-	    bool ok = radio.write(&packet, BUFFER_SIZE-1 );
-	    if (ok){
-	    		char cb = *control_byte;
-	    		printf("Control Byte [ ");
-	    		for( int i = 0; i < 8; i++) {
-				    if (cb & 0x80)
-				        printf("1");
-				    else
-				        printf("0");
-
-				    cb <<= 1;
-				}
-				printf(" ] ");
-        for(int i=1; i<BUFFER_SIZE-1; i++) {
-          printf("%02X", (unsigned char) packet[i]);
-          if(i%3==0)
-            printf(" ");
+            } else if(packet[0] & 0x80 == 0x00) {
+                //TODO packet contains the readings from the LDR's
+            }
+            // Delay just a little bit to let the other unit
+            // make the transition to receiver
+            delay(20);
         }
-        printf("\n");
-			} else {
-				printf("failed.\n\r");
-			}
-			// Now, continue listening
-	    	radio.startListening();
-	    }
-	    readSerial = "";
-      free(tmp);
- 	}
- 	if ( Serial.available() )
- 	{
- 		role = role_listener;
- 		unsigned char c = Serial.read();
+    } else if ( role == role_sender && (mqttString.length() != 0) ) {
 
- 		if( c == '\r'){
-			Serial.println();
-			role = role_sender;
+        // Initialize Control Byte
+        unsigned char *control_byte = packet;
+        (*control_byte) = mqttString.substring(0,1).toInt(); // write line number
+        (*control_byte) = (*control_byte) | 0x80;   // set first bit as a flag indicating bitmap packet
 
-	 		// if ( c == 'L' && role == role_sender )
-		  //   {
-		  //   	printf("*** CHANGING ROLE -- PRESS 'S' TO SWITCH TO: SENDER\n\r");
-				// // Become the primary transmitter (ping out)
-				// role = role_listener;
-				// radio.openWritingPipe(pipes[0]);
-				// radio.openReadingPipe(1,pipes[1]);
+        //convert the remaining string to binary and save it in payload
+        int r = 1;  //mqttString index
+        int p = 1;  //payload index
+        while(r<mqttString.length() && p< BUFFER_SIZE) {
+            char color[2] = {mqttString[r], mqttString[r+1]}; //create a string with each 2 chars
+            packet[p] = (unsigned char) (strtol(color, NULL, 16));  //convert to unsigned char
+            r+=2;
+            p++;
+        }
 
-		 	// }else if ( c == 'S' && role == role_listener ){
-		 	// 	printf("*** CHANGING ROLE -- PRESS 'L' TO SWITCH TO: LISTENER\n\r");
+        // First, stop listening so we can talk.
+        radio.stopListening();
+        bool ok = radio.write(&packet, BUFFER_SIZE);
+        if (ok){
+            print_packet_bitmap(packet, BUFFER_SIZE);
+        } else {
+            printf("failed to send.\n\r");
+        }
+        // Now, continue listening
+        radio.startListening();
+        // Clear mqttString
+        mqttString = "";
+    }
+    //TODO read LDR's and send it periodically (carefully not to enter a state where we always send LDR and never enter listener role
 
-				// // Become the primary receiver (pong back)
-				// role = role_sender;
-				// radio.openWritingPipe(pipes[1]);
-				// radio.openReadingPipe(1,pipes[0]);
-		  //   }
-
-	    }else if( c == '\n' ){
-
-    	}else{
-    		readSerial += c;
-    		Serial.print(c);
-    	}
-	}else{
-		role = role_listener;
-	}
+    role = role_listener;
 }
-
-
-
