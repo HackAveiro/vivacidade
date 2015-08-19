@@ -1,8 +1,10 @@
 vivacidade
 ==========
-
 Aveiro's vivacidade project
 
+imagem do protótipo
+===================
+![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/HackAveiro_Vivacidade-low.JPG)
 
 Arduino dependencies
 ====================
