@@ -50,8 +50,10 @@ CRGB leds[NUM_LEDS];
 // MQTT Callback function
 void callback(char* topic, byte* payload, unsigned int length) {
     printf("MQTT bitmat(%d)", length);
-    for(int i=0; i<length; i++)
-        mqttString+=(unsigned  char) payload[i];
+    for(int i=0; i<length; i++) {
+        mqttString+=(char) payload[i];
+        if(payload[i] == 'Q') return;
+    }
     Serial.println(mqttString);
 
     role = role_sender;
@@ -72,7 +74,7 @@ void print_packet_bitmap(unsigned char *packet, size_t size) {
     printf(" ] Line:%d - ", (unsigned int) (packet[0] & 0x7F));
     for(int i=1; i<size; i++) {
         printf("%02X", (unsigned char) packet[i]);
-        if( (i-1)%3 == 0)
+        if( i%3 == 0)
             printf(" ");
     }
     printf("\n");
@@ -143,9 +145,11 @@ void loop() {
                 return; //Can't read packet? Abort!
 
             print_packet_bitmap(packet, BUFFER_SIZE);
-            if(packet[0] & 0x80 == 0x80) {      //first bit indicates that the packet contains a bitmap
+            if((packet[0] & 0x80) == 0x80) {      //first bit indicates that the packet contains a bitmap
                 int line = packet[0] & 0x7F;    //line number
 
+                if (line>1) return; //TODO ISTO È TESTE!!!!
+                Serial.println("display!");
                 //Payload in binary: CB(1B);R1G1B1(3B);R2G2B2(3B); ... ; R10G10B10(3B). Total = ...
                 unsigned pixel = 0;
                 for(int i=1; i<len; i+=3){    //we start in byte 1 (payload)
@@ -156,6 +160,7 @@ void loop() {
                             );
                     pixel++;
                 }
+                
 #ifndef GATEWAY
                 //TODO A verdade é que o array leds não pode ser enviado directamente devido a maneira que construimos o painel...
                 //TODO vivacidadeLeds = convert(leds);
