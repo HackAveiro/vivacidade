@@ -1,4 +1,4 @@
-#define GATEWAY
+//#define GATEWAY
 
 #ifdef GATEWAY
 #include <Bridge.h>
@@ -42,10 +42,19 @@ PubSubClient client(MQTT_SERVER, 1883, callback, yun);
 #endif
 
 // How many leds in your strip?
-#define NUM_LEDS 10
+#define NUM_LED_LINES 2
+#define NUM_LED_COLUMNS 10
+#define NUM_LEDS (NUM_LED_LINES * NUM_LED_COLUMNS)
 #define DATA_PIN 2
 // Define the array of leds
 CRGB leds[NUM_LEDS];
+
+//Lookup table that maps leds position to "real" led position
+char ledmap[NUM_LEDS] = {
+  0, 1, 2, 3, 4, 10, 11, 12, 13, 14,
+  5, 6, 7, 8, 9, 15, 16, 17, 18, 19                    
+};
+
 
 // MQTT Callback function
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -77,7 +86,7 @@ void print_packet_bitmap(unsigned char *packet, size_t size) {
         if( i%3 == 0)
             printf(" ");
     }
-    printf("\n");
+    printf("\r\n");
 }
 
 void setup() {
@@ -153,7 +162,7 @@ void loop() {
                 //Payload in binary: CB(1B);R1G1B1(3B);R2G2B2(3B); ... ; R10G10B10(3B). Total = ...
                 unsigned pixel = 0;
                 for(int i=1; i<len; i+=3){    //we start in byte 1 (payload)
-                    leds[line*NUM_LEDS+pixel] = CRGB(
+                    leds[ledmap[line*NUM_LED_COLUMNS+pixel]] = CRGB(
                             (unsigned char)packet[i],
                             (unsigned char)packet[i+1],
                             (unsigned char)packet[i+2]
