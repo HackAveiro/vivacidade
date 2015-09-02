@@ -1,0 +1,87 @@
+Cmp-Mod V01 Created by Cvpcb (2014-08-21 BZR 5087)-product   date = Sex 13 Mar 2015 19:10:57 WET
+
+BeginCmp
+TimeStamp = /54C7CDA7;
+Reference = C1;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CDA4;
+Reference = C2;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CDA1;
+Reference = C3;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CCD7;
+Reference = C4;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CD1D;
+Reference = C5;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CCFB;
+Reference = C6;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CD1A;
+Reference = C7;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CCFF;
+Reference = C8;
+ValeurCmp = C;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54F63DA4;
+Reference = P1;
+ValeurCmp = CONN_02X06;
+IdModule  = Pin_Headers:Pin_Header_Straight_2x06;
+EndCmp
+
+BeginCmp
+TimeStamp = /54F63F7D;
+Reference = P2;
+ValeurCmp = CONN_02X06;
+IdModule  = Pin_Headers:Pin_Header_Straight_2x06;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CC88;
+Reference = R1;
+ValeurCmp = RVAR;
+IdModule  = Discret:R1;
+EndCmp
+
+BeginCmp
+TimeStamp = /54C7CA2B;
+Reference = U1;
+ValeurCmp = WS2812B;
+IdModule  = u:u;
+EndCmp
+
+EndListe
