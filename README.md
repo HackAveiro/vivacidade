@@ -25,3 +25,5 @@ LED_BOARD
 =========
 ![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/led_board/board1.png)
 ![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/led_board/board2.png)
+![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/led_board/esquemático_neopixboard)
+
