@@ -14,5 +14,9 @@ Arduino dependencies
 * FastLED - https://github.com/FastLED/FastLED
 
 
-![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/ADC_Board/ADC_Board_Left.brd.pdf)
 
+ADC_BOARD
+=========
+![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/ADC_Board/ADC_Board_Left.brd.png)
+![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/ADC_Board/ADC_Board_Left.brd.png)
+![alt tag](https://github.com/HackAveiro/vivacidade/blob/master/ADC_Board/ADC_Board_Left.brd.png)
