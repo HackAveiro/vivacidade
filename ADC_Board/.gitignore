@@ -1,3 +1,5 @@
 *.b#*
 *.s#*
+.ninja_log
+.ninja_deps
 

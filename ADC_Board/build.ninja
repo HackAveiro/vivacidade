@@ -1,0 +1,16 @@
+rule pdf2svg
+  command = pdf2svg $in $out
+
+rule svg2png
+  command = convert $in $out
+
+build ADC_Board_Left.sch.svg: pdf2svg ADC_Board_Left.sch.pdf
+build ADC_Board_Left.sch.png: svg2png ADC_Board_Left.sch.svg
+build ADC_Board_Left.brd.svg: pdf2svg ADC_Board_Left.brd.pdf
+build ADC_Board_Left.brd.png: svg2png ADC_Board_Left.brd.svg
+
+build ADC_Board_Right.sch.svg: pdf2svg ADC_Board_Right.sch.pdf
+build ADC_Board_Right.sch.png: svg2png ADC_Board_Right.sch.svg
+build ADC_Board_Right.brd.svg: pdf2svg ADC_Board_Right.brd.pdf
+build ADC_Board_Right.brd.png: svg2png ADC_Board_Right.brd.svg
+
