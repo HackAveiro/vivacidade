@@ -9,6 +9,6 @@ imagem do protótipo
 Arduino dependencies
 ====================
 
-MCP3008 - https://github.com/nodesign/MCP3008
-RF24 - https://github.com/maniacbug/RF24.git
-FastLED - https://github.com/FastLED/FastLED
+* MCP3008 - https://github.com/nodesign/MCP3008
+* RF24 - https://github.com/maniacbug/RF24.git
+* FastLED - https://github.com/FastLED/FastLED
