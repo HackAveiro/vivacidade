@@ -25,10 +25,11 @@ PCB Layout ( (Left Board)
 
 [Gateway_Vivacidade!](Gateway_Vivacidade)
 ==================
-[]https://github.com/HackAveiro/vivacidade/tree/master/Gateway_Vivacidade
+{{Citation needed}} 
 
 [led_board!](led_board)
 =========
+{{Citation needed}} 
 ![alt tag](led_board/board1.png)
 ![alt tag](led_board/board2.png)
 ![alt tag](led_board/esquemático_neopixboard.png)
