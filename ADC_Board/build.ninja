@@ -1,8 +1,26 @@
+rule eagle_brd_2_pdf
+  command = rm -f $out && eagle $in -C "PRINT 2 FILE $out; QUIT"
+
+rule eagle_brd_mirror_2_pdf
+  command = rm -f $out && eagle $in -C "PRINT 2 MIRROR FILE $out; QUIT"
+
+rule eagle_sch_2_pdf
+  command = rm -f $out && eagle $in -C "PRINT 1 FILE $out; QUIT"
+
 rule pdf2svg
   command = pdf2svg $in $out
 
 rule svg2png
   command = convert $in $out
+
+build ADC_Board_Left.sch.pdf: eagle_sch_2_pdf ADC_Board_Left.sch
+build ADC_Board_Left.brd.pdf: eagle_brd_2_pdf ADC_Board_Left.brd
+
+build ADC_Board_Right.sch.pdf: eagle_sch_2_pdf ADC_Board_Right.sch
+build ADC_Board_Right.brd.pdf: eagle_brd_2_pdf ADC_Board_Right.brd
+
+build ADC_Board_Left.brd.mirror.pdf : eagle_brd_mirror_2_pdf ADC_Board_Left.brd
+build ADC_Board_Right.brd.mirror.pdf: eagle_brd_mirror_2_pdf ADC_Board_Right.brd
 
 build ADC_Board_Left.sch.svg: pdf2svg ADC_Board_Left.sch.pdf
 build ADC_Board_Left.sch.png: svg2png ADC_Board_Left.sch.svg
