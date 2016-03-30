@@ -1,0 +1,17 @@
+*.b#*
+*.s#*
+*.l#*
+.ninja_log
+.ninja_deps
+
+*.cmp
+*.drd
+*.dri
+*.gpi
+*.plc
+*.sol
+*.stc
+*.sts
+*.whl
+gerber/
+
